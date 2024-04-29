@@ -33,49 +33,62 @@ def FunkLagDatabase():
 
 #Lage en funksjon for å importere alle brukere ifra CSV filen. 
 def FunkImporterCSV():
+    conn = sqlite3.connect('Brukerdatabase.db') 
+    c = conn.cursor()
+#Try except
     try:
-        with open('Brukerdatabase.csv', 'r') as file:
-            reader = csv.reader(file) 
+        with open('Brukerdatabase.csv', 'r') as file: #Åpner opp brukerdatabase filen
+            reader = csv.reader(file)  #leser filen
+            next(reader) #Hopper over en linje
 
-        next(reader)
+            for row in reader: #For hver rad i csv filen legger den inn informasjon i brukere tabellen i databasen. 
+                c.execute('''
+                    INSERT INTO brukere(fname, ename, epost, tlf, postnummer)
+                    VALUES(?, ?, ?, ?, ?)''', row) 
 
-        for row in reader:
-            c.execute('''
-            INSERT INTO brukere(fname, ename, epost, tlf, postnummer)
-            VALUES(?, ?, ?, ?, ?)''', row) 
-
-            conn.commit()
-    except Exception as e:
+            conn.commit() #Committer sånn at det blir lagret. 
+    except Exception as e: #Bruker messagebox til å vise en feilmelding hvis det oppstår et problem.
         messagebox.showerror("Feilmelding", "Importering av brukere feilet! Pass på og tøm databasen før du importerer.")
-    else:
-        conn.commit()
 
-#Slett brukere
+#Slett brukere, kobler meg til databasen.
 def FunkSlettBrukere():
-    c.execute('''DELETE FROM brukere
-''')
-    conn.commit()
-     
-
-def FunkSlettTomDatabase():
+    conn = sqlite3.connect('Brukerdatabase.db') 
+    c = conn.cursor()
     try:
-        conn.close()
-        os.remove('TomDatabase.db')
-    except Exception as e:
-        messagebox.showerror("Feilmelding", "Sletting av tom database feilet! Pass på at den tomme databasen eksisterer ")
-    else:
+        c.execute('''DELETE FROM brukere''') #Sletter brukere
         conn.commit()
+    except sqlite3.Error as e:
+        messagebox.showerror("Feilmelding", "Sletting av brukere feilet!") #Messagebox hvis en feilmelding oppstår. 
+    finally:
+        conn.close()
 
-window = customtkinter.CTk()
-window.title('Administrer brukerdatabase')
-window.geometry('250x300')
+#Sletter den tomme databasen, bruker os modulen til å slette filen. Bruker også messagebox til å vise error hvis det ikke fungerer.
+#Noen ganger må man trykke 2 ganger på slett knappen for at den skal fungere. 
+def FunkSlettTomDatabase():
+    conn = sqlite3.connect('TomDatabase.db')
+    conn.close()
+    try:
+        os.remove('TomDatabase.db')
+    except (sqlite3.Error, FileNotFoundError, PermissionError) as e:
+        messagebox.showerror("Feilmelding", "Sletting av tom database feilet! Pass på at den tomme databasen eksisterer ")
 
-varLeggTil = customtkinter.CTkLabel(window, text="Legg til").pack(pady=5)
-varLagDatabase = customtkinter.CTkButton(window, text="Lag en tom database", command=FunkLagDatabase).pack(pady=3)
-varImporterCSV = customtkinter.CTkButton(window, text="Importer brukere i hoved databasen", command=FunkImporterCSV).pack(pady=3)
+#GUI
+def main():
+#Lager vinduet
+    window = customtkinter.CTk()
+    window.title('Administrer brukerdatabase')
+    window.geometry('250x300')
 
-varFjern = customtkinter.CTkLabel(window, text="Fjern").pack(pady=5)
-varSlettBrukere = customtkinter.CTkButton(window, text="Slett brukere", fg_color="red", hover_color="maroon", command=FunkSlettBrukere).pack(pady=3)
-varSlettTomDatabase = customtkinter.CTkButton(window, text="Slett den tomme database", fg_color="red", hover_color="maroon", command=FunkSlettTomDatabase).pack(pady=3)
+#Her er knappene, ganske selv forklart. Linker knappene til funksjonene jeg lagde tidligere. 
+    varLeggTil = customtkinter.CTkLabel(window, text="Legg til").pack(pady=5)
+    varLagDatabase = customtkinter.CTkButton(window, text="Lag en tom database", command=FunkLagDatabase).pack(pady=3)
+    varImporterCSV = customtkinter.CTkButton(window, text="Importer brukere i hoved databasen", command=FunkImporterCSV).pack(pady=3)
 
-window.mainloop()
+    varFjern = customtkinter.CTkLabel(window, text="Fjern").pack(pady=5)
+    varSlettBrukere = customtkinter.CTkButton(window, text="Slett brukere", fg_color="red", hover_color="maroon", command=FunkSlettBrukere).pack(pady=3)
+    varSlettTomDatabase = customtkinter.CTkButton(window, text="Slett den tomme database", fg_color="red", hover_color="maroon", command=FunkSlettTomDatabase).pack(pady=3)
+
+    window.mainloop() #Kjører vinduet. 
+
+if __name__ == "__main__": #Bruker main til å kjøre programmet. 
+    main()
